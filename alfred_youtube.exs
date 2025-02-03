@@ -1,3 +1,4 @@
+
 #!/usr/bin/env elixir
 
 Mix.install([
@@ -57,10 +58,12 @@ defmodule ImageDownloader do
   end
 
   defp get_filename(url) do
-    case URI.parse(url).path |> Path.basename() do
-      "" -> "downloaded_image.jpg"
-      name -> name
-    end
+    paths =
+      url
+      |> String.split("/")
+
+    video_id = paths |> Enum.at(-2)
+    "#{video_id}.jpg"
   end
 end
 
@@ -92,11 +95,17 @@ defmodule YoutubeSearch do
         video_ids = alfred_items |> Enum.map(& &1.uid)
         video_statistics = conn |> fetch_video_statistics(video_ids)
 
-        alfred_items
-        |> Enum.map(fn %{uid: video_id, subtitle: subtitle} = item ->
-          video_statistic = video_statistics |> Map.get(video_id) |> Number.SI.number_to_si()
-          item |> Map.put(:subtitle, subtitle <> " • #{video_statistic} views")
-        end)
+        alfred_items =
+          alfred_items
+          |> Enum.map(fn %{uid: video_id, subtitle: subtitle} = item ->
+            video_statistic = video_statistics |> Map.get(video_id) |> Number.SI.number_to_si()
+            item |> Map.put(:subtitle, subtitle <> " • #{video_statistic} views")
+          end)
+
+        %{
+          rerun: 1,
+          items: alfred_items
+        }
 
       {:error, error} ->
         IO.inspect(error)
@@ -109,7 +118,7 @@ defmodule YoutubeSearch do
       ["snippet"],
       q: query,
       key: fetch_api_key(),
-      max_results: 10,
+      maxResults: 12,
       type: ["video"]
     )
   end
@@ -123,7 +132,6 @@ defmodule YoutubeSearch do
           publishedAt: published_at
         }
       }) do
-
     thumbnail_tmp_path = ImageDownloader.download(thumbnail_url)
 
     relative_published_at =
@@ -162,4 +170,7 @@ defmodule YoutubeSearch do
   def fetch_api_key, do: System.get_env("LB_API_KEY")
 end
 
-YoutubeSearch.search("lenka") |> Jason.encode!() |> IO.puts()
+[query | _] = System.argv()
+
+query |> YoutubeSearch.search() |> Jason.encode!() |> IO.puts()
+outubeSearch.search("lenka") |> Jason.encode!() |> IO.puts()
